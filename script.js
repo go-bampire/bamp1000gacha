@@ -73,39 +73,53 @@ window.addEventListener('load', loadCSV);
 // ガチャ処理（アラート部分を調整）
 gachaBtn.addEventListener("click", () => {
   if (drinks.length === 0 || foods.length === 0) {
-    alert("まだ読み込みが完了していません。ページをリロードするか、少し待ってください！");
+    alert("メニュー読み込み中です... 少し待ってからもう一度ガチャを押してください！");
     return;
   }
 
-  // ここからドリンク1杯固定のガチャ処理（変更なし）
-  let selected = [];
-  let total = 0;
+  let bestSelected = [];
+  let bestTotal = 0;
+  const trials = 20;  // 試行回数（20回でだいたい900円以上になることが多い。増やしてもOK）
 
-  const drinkIndex = Math.floor(Math.random() * drinks.length);
-  const selectedDrink = drinks[drinkIndex];
-  selected.push(selectedDrink);
-  total += selectedDrink.price;
+  for (let t = 0; t < trials; t++) {
+    let selected = [];
+    let total = 0;
 
-  while (true) {
-    const foodIndex = Math.floor(Math.random() * foods.length);
-    const item = foods[foodIndex];
+    // ドリンク1杯（ガードなしでそのままランダム）
+    const drinkIndex = Math.floor(Math.random() * drinks.length);
+    const selectedDrink = drinks[drinkIndex];
+    selected.push(selectedDrink);
+    total += selectedDrink.price;
 
-    if (total + item.price > 1000) break;
+    // 食べ物を次々追加（合計1000円を超えないように）
+    while (true) {
+      const foodIndex = Math.floor(Math.random() * foods.length);
+      const item = foods[foodIndex];
 
-    selected.push(item);
-    total += item.price;
+      if (total + item.price > 1000) break;
 
-    if (selected.length > 30) break;
+      selected.push(item);
+      total += item.price;
+
+      if (selected.length > 30) break;  // 無限ループ防止
+    }
+
+    // 今までのベストより「1000円に近い」または「より高い」なら更新
+    // （同じ距離なら高い方を優先）
+    if (Math.abs(1000 - total) < Math.abs(1000 - bestTotal) || 
+        (Math.abs(1000 - total) === Math.abs(1000 - bestTotal) && total > bestTotal)) {
+      bestSelected = [...selected];
+      bestTotal = total;
+    }
   }
 
-  // 表示
+  // ベストの結果を表示
   menuList.innerHTML = "";
-  selected.forEach(item => {
+  bestSelected.forEach(item => {
     const li = document.createElement("li");
     li.textContent = `${item.name} - ${item.price}円`;
     menuList.appendChild(li);
   });
 
-  totalEl.textContent = `合計: ${total}円`;
+  totalEl.textContent = `合計: ${bestTotal}円`;
 });
-window.addEventListener('load', loadCSV);
